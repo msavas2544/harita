@@ -3,95 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚔 Erzurum Emniyet | Master Diamond v15</title>
+    <title>🚔 Erzurum Emniyet | Master Diamond v34</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
-        :root { --primary: #0a192f; --accent: #ffd700; --success: #22c55e; --danger: #ef4444; --sidebar-bg: #ffffff; }
+        :root { 
+            --primary: #1e3a8a; --accent: #ffd700; --success: #16a34a; 
+            --danger: #dc2626; --warning: #f97316; --info: #2563eb; --sidebar-bg: #ffffff;
+            --card-active: #ecfdf5; --card-passive: #fef2f2;
+        }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        header { background: linear-gradient(to right, #0a192f, #1e3a8a); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 3px solid var(--accent); }
-        .toolbar { padding: 12px 20px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; gap: 15px; align-items: center; z-index: 999; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        header { background: linear-gradient(135deg, #0a192f 0%, #1e3a8a 100%); color: white; padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 4px solid var(--accent); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .toolbar { padding: 10px 20px; background: white; border-bottom: 2px solid #e2e8f0; display: flex; gap: 8px; align-items: center; z-index: 999; flex-wrap: wrap; }
         
-        .main-layout { display: grid; grid-template-columns: 1fr 450px; flex: 1; overflow: hidden; }
+        .main-layout { display: grid; grid-template-columns: 1fr 520px; flex: 1; overflow: hidden; }
         #map { width: 100%; height: 100%; cursor: crosshair; position: relative; }
-        .sidebar { background: var(--sidebar-bg); border-left: 1px solid #e2e8f0; overflow-y: auto; padding: 25px; }
+        .sidebar { background: var(--sidebar-bg); border-left: 1px solid #e2e8f0; overflow-y: auto; padding: 20px; }
 
-        /* Görev Kartı Tasarımı */
-        .task-card { background: white; border-radius: 15px; padding: 18px; border-left: 12px solid #94a3b8; box-shadow: 0 5px 15px rgba(0,0,0,0.08); margin-bottom: 20px; transition: 0.3s; position: relative; }
-        .active-card { border-left-color: var(--success) !important; }
-        .passive-card { border-left-color: var(--danger) !important; }
-        .card-header { display: flex; justify-content: space-between; font-weight: 900; font-size: 1.2rem; }
+        .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #cbd5e1; }
+        .dash-card { text-align: center; padding: 8px; border-radius: 10px; background: white; border-bottom: 4px solid #94a3b8; }
+        .dash-card b { display: block; font-size: 1.2rem; color: var(--primary); }
 
-        .btn { padding: 10px 18px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; color: white; display: flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 0.85rem; }
-        .btn-primary { background: #1e3a8a; }
-        .btn-success { background: var(--success); }
-        .btn-danger { background: var(--danger); }
-        .btn-gold { background: var(--accent); color: #0a192f; }
+        /* Görev Kartı - image_7a4fdc.png stili */
+        .task-card { background: white; border-radius: 15px; padding: 18px; border-left: 15px solid #94a3b8; box-shadow: 0 6px 15px rgba(0,0,0,0.1); margin-bottom: 20px; position: relative; border-right: 1px solid #ddd; border-top: 1px solid #ddd; transition: 0.3s; }
+        .active-card { border-left-color: var(--success) !important; background: var(--card-active) !important; }
+        .passive-card { border-left-color: var(--danger) !important; background: var(--card-passive) !important; }
 
-        /* Çizim Modu Üst Paneli - Click korumalı */
-        #routeHelper { 
-            display: none; position: absolute; top: 30px; left: 50%; transform: translateX(-50%); 
-            background: rgba(10, 25, 47, 0.95); padding: 15px 35px; border-radius: 50px; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 5000; align-items: center; gap: 20px; 
-            color: white; border: 2px solid var(--accent); 
-        }
+        /* Butonlar - Gri Kesinlikle Yok */
+        .btn { padding: 10px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; color: white; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-excel { background: #107c41; }
+        .btn-word { background: #2b5797; }
+        .btn-pdf { background: #e11d48; }
+        .btn-print { background: #6366f1; }
+        .btn-wa { background: #25d366; }
+        .btn-save { background: #1e3a8a; border: 2px solid var(--accent); width: 100%; justify-content: center; font-size: 1rem; padding: 15px; margin-top: 10px; }
+        .btn-danger { background: var(--danger) !important; } /* Silme butonları kıpkırmızı */
+        .btn-undo { background: var(--warning) !important; } /* Geri al turuncu */
 
-        /* Modal Tasarımı (Merkezde) */
+        #routeHelper { display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(10, 25, 47, 0.95); padding: 15px 35px; border-radius: 50px; z-index: 5000; align-items: center; gap: 15px; color: white; border: 2px solid var(--accent); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 6000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 35px; border-radius: 20px; width: 480px; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
-        input, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-family: inherit; }
+        .modal-content { background: white; padding: 30px; border-radius: 25px; width: 500px; max-height: 90vh; overflow-y: auto; }
+        input, select, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; font-size: 0.95rem; }
+        label { font-weight: 800; font-size: 0.85rem; color: var(--primary); display: block; margin-bottom: 5px; }
 
-        .police-marker-icon { display: flex !important; justify-content: center !important; align-items: center !important; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6)) !important; }
+        .police-marker-icon { display: flex !important; justify-content: center !important; align-items: center !important; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)) !important; }
 
         @media print {
-            header, .toolbar, #map, #routeHelper, .btn-group, .btn-mini { display: none !important; }
-            body { background: white; overflow: visible; }
-            .main-layout { display: block; }
-            .sidebar { width: 100%; border: none; }
-            .task-card { border: 2px solid #000; margin-bottom: 30px; page-break-inside: avoid; }
+            @page { size: A4; margin: 0.5cm; }
+            header, .toolbar, #map, #routeHelper, .btn-group-card, .share-check { display: none !important; }
+            body { background: white; overflow: visible; height: auto; }
+            .main-layout { display: block; width: 100%; }
+            .sidebar { border: none; padding: 0; width: 100%; overflow: visible; }
+            .task-card { border: 2px solid #000 !important; border-left: 20px solid #000 !important; page-break-inside: avoid; margin-bottom: 15px; width: 100% !important; background: white !important; }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <h1 style="margin:0;"><i class="fas fa-tower-broadcast"></i> ERZURUM EMNİYET MÜDÜRLÜĞÜ</h1>
-    <div id="liveClock" style="font-weight:900; letter-spacing:2px; color:var(--accent); font-size: 1.2rem;">00:00:00</div>
+    <h1 style="margin:0;"><i class="fas fa-shield-halved"></i> ERZURUM EMNİYET MÜDÜRLÜĞÜ | MASTER DIAMOND</h1>
+    <div id="liveClock" style="font-weight:900; color:var(--accent);">00:00:00</div>
 </header>
 
 <div class="toolbar" id="mainToolbar">
-    <input type="text" id="searchInput" placeholder="🔍 Erzurum'da sokak/mahalle ara..." style="flex:1; padding:12px; border:2px solid #e2e8f0; border-radius:12px; outline:none;">
-    
-    <div style="display:flex; align-items:center; gap:10px; background:#f8fafc; padding:8px 15px; border-radius:10px; border:1px solid #e2e8f0;">
-        <small>Simge:</small>
-        <input type="range" id="iconSizeSlider" min="30" max="100" value="50" style="width: 80px; cursor: pointer;">
-    </div>
-
-    <button class="btn btn-primary" id="searchBtn">Bul</button>
-    <button class="btn btn-gold" onclick="exportProfessionalExcel()"><i class="fas fa-file-excel"></i> Rapor</button>
-    <button class="btn btn-primary" style="background:#475569" onclick="window.print()"><i class="fas fa-print"></i> Yazdır</button>
-    <button class="btn btn-success" id="bulkShare"><i class="fab fa-whatsapp"></i> Paylaş</button>
+    <input type="text" id="searchInput" placeholder="🔍 Bölge ara..." style="flex:1; padding:12px; border:2px solid #cbd5e1; border-radius:12px;">
+    <button class="btn btn-excel" onclick="exportProfessionalExcel()"><i class="fas fa-file-excel"></i> EXCEL</button>
+    <button class="btn btn-word" onclick="exportWord()"><i class="fas fa-file-word"></i> WORD</button>
+    <button class="btn btn-pdf" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+    <button class="btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> YAZDIR</button>
+    <button class="btn btn-wa" id="bulkShare"><i class="fab fa-whatsapp"></i> PAYLAŞ</button>
+    <button class="btn btn-danger" onclick="clearAllData()"><i class="fas fa-eraser"></i> SIFIRLA</button>
 </div>
 
 <div class="main-layout">
     <div id="map">
         <div id="routeHelper">
-            <span style="font-size:1.1rem;">📏 <span id="liveDist" style="color:var(--accent)">0 m</span></span>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-danger" style="padding:8px 15px" onclick="undoStep()">Geri Al</button>
-                <button class="btn btn-success" style="padding:8px 15px" onclick="finishRoute()">Bitir</button>
-            </div>
+            <span style="font-weight:900; font-size:1.2rem;">📏 <span id="liveDist" style="color:var(--accent)">0 m</span></span>
+            <input type="color" id="routeColor" value="#ff0000" style="width:35px; height:35px; border:none; border-radius:50%; cursor:pointer;">
+            <button class="btn btn-undo" onclick="undoStep()">GERİ AL</button>
+            <button class="btn" style="background:#16a34a" id="finishRouteBtn" onclick="finishRoute()">BİTİR (KAYDET)</button>
         </div>
     </div>
-    <div class="sidebar">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:30px;">
-            <div style="background:#f8fafc; padding:20px; border-radius:15px; text-align:center; border:1px solid #e2e8f0;">
-                <small>TOPLAM EKİP</small><div id="totalCount" style="font-size:2rem; font-weight:900;">0</div>
-            </div>
-            <div style="background:#f0fdf4; padding:20px; border-radius:15px; text-align:center; border:1px solid #bbf7d0;">
-                <small>AKTİF GÖREV</small><div id="activeCount" style="font-size:2rem; font-weight:900; color:var(--success);">0</div>
-            </div>
+    
+    <div class="sidebar" id="reportArea">
+        <div class="dashboard">
+            <div class="dash-card"><b><span id="stat_total">0</span></b><small>Toplam</small></div>
+            <div class="dash-card"><b><span id="stat_active" style="color:var(--success)">0</span></b><small>Aktif</small></div>
+            <div class="dash-card"><b><span id="stat_yunus">0</span></b><small>Yunus</small></div>
+            <div class="dash-card"><b><span id="stat_trafik">0</span></b><small>Trafik</small></div>
         </div>
         <div id="taskList"></div>
     </div>
@@ -99,53 +104,62 @@
 
 <div id="taskModal" class="modal">
     <div class="modal-content">
-        <h2 style="margin-top:0; color:var(--primary);"><i class="fas fa-file-signature"></i> Görev Kaydı</h2>
-        <div id="addrDisplay" style="background:#f8fafc; padding:15px; border-radius:12px; font-size:0.9rem; color:#475569; margin-bottom:20px; border-left:5px solid #1e3a8a;">📍 Konum alınıyor...</div>
-        <input type="text" id="t_team" placeholder="Ekip Kodu (Örn: 25-10)">
-        <input type="text" id="t_person" placeholder="Personel Rütbe / İsim">
-        <div style="display:flex; gap:15px;"><input type="time" id="t_start"> <input type="time" id="t_end"></div>
-        <textarea id="t_desc" rows="4" placeholder="Görev talimatı ve notlar..."></textarea>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-success" id="saveBtn" style="flex:2;">💾 KAYDET</button>
-            <button class="btn btn-danger" onclick="closeModals()" style="flex:1;">İPTAL</button>
+        <h2 id="modalTitle" style="margin-top:0; border-bottom: 3px solid #1e3a8a; padding-bottom:10px; color:#1e3a8a;">📋 Görev Kayıt Formu</h2>
+        <div id="addrDisplay" style="background:#f8fafc; padding:15px; border-radius:12px; font-size:0.85rem; margin-bottom:15px; border-left:6px solid #1e3a8a; font-weight:900;">📍 Konum belirleniyor...</div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div><label>Birim</label><select id="t_type"><option value="Devriye">🚔 Devriye Ekipler</option><option value="Trafik">🚥 Trafik Birimi</option><option value="Yunus">🏍️ Yunus Timleri</option><option value="Siber">💻 Siber Suçlar</option><option value="Özel">🏹 Özel Harekat</option><option value="Çevik">🛡️ Çevik Kuvvet</option></select></div>
+            <div><label>Görev Türü</label><select id="t_duty"><option value="Şok Uygulama">⚡ Şok Uygulama</option><option value="Rutin Devriye">🔄 Rutin Devriye</option><option value="Huzur Uygulaması">👮 Huzur</option><option value="Kapama">🛑 Kapama</option><option value="Yaya Devriye">🚶 Yaya</option></select></div>
+        </div>
+
+        <label>Ekip No (Kodu)</label>
+        <input type="text" id="t_team" placeholder="Örn: 4555">
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div><label>Personel 1</label><input type="text" id="t_p1" placeholder="Rütbe / İsim"></div>
+            <div><label>Personel 2</label><input type="text" id="t_p2" placeholder="Rütbe / İsim"></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div><label>Başlangıç</label><input type="time" id="t_start"></div>
+            <div><label>Bitiş</label><input type="time" id="t_end"></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+            <button class="btn btn-save" id="saveBtn">💾 GÖREVİ KAYDET</button>
+            <button class="btn" style="background:#1e3a8a; border: 2px solid var(--accent); width: 100%; justify-content:center; padding:15px; font-size:1rem;" onclick="closeModals()">İPTAL ET</button>
         </div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-    let tasks = JSON.parse(localStorage.getItem('erzurum_diamond_v15')) || [];
+    let tasks = JSON.parse(localStorage.getItem('erzurum_diamond_v34')) || [];
     let map, markers = [], routeLines = [], pendingCoords = null, currentRoute = [], undoStack = [], routeTaskID = null;
-    let ghostLine = null, currentIconSize = 50, pendingAddr = "";
+    let editingId = null, pendingAddr = "";
+
+    const typeIcons = { "Devriye": "🚔", "Trafik": "🚥", "Yunus": "🏍️", "Siber": "💻", "Özel": "🏹", "Çevik": "🛡️" };
 
     function init() {
         map = L.map('map', { zoomControl: false }).setView([39.9043, 41.2717], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // UI elemanlarına tıklandığında harita tıklamasını engelle
         L.DomEvent.disableClickPropagation(document.getElementById('routeHelper'));
         L.DomEvent.disableClickPropagation(document.getElementById('mainToolbar'));
 
         map.on('click', async (e) => {
-            if(routeTaskID) {
-                undoStack.push([...currentRoute]);
-                currentRoute.push([e.latlng.lat, e.latlng.lng]);
+            if (routeTaskID !== null) {
+                undoStack.push([...currentRoute]); currentRoute.push([e.latlng.lat, e.latlng.lng]);
                 drawTempRoute(); return;
             }
-            pendingCoords = e.latlng;
+            editingId = null; pendingCoords = e.latlng;
+            document.getElementById('modalTitle').innerText = "📋 Yeni Görev Girişi";
             document.getElementById('taskModal').style.display = 'flex';
             await fetchAddress(e.latlng.lat, e.latlng.lng);
         });
 
-        map.on('mousemove', (e) => {
-            if(routeTaskID && currentRoute.length > 0) {
-                if(ghostLine) map.removeLayer(ghostLine);
-                ghostLine = L.polyline([currentRoute[currentRoute.length - 1], [e.latlng.lat, e.latlng.lng]], {color: '#3b82f6', weight: 2, dashArray: '5, 5', opacity: 0.6}).addTo(map);
-            }
-        });
-
-        document.getElementById('iconSizeSlider').oninput = (e) => { currentIconSize = e.target.value; render(); };
+        document.getElementById('saveBtn').onclick = saveTask;
+        document.getElementById('bulkShare').onclick = bulkShare;
         setInterval(() => { document.getElementById('liveClock').innerText = new Date().toLocaleTimeString('tr-TR'); }, 1000);
         render();
     }
@@ -156,132 +170,120 @@
             const data = await res.json();
             pendingAddr = data.display_name.split(',').slice(0, 3).join(',');
             document.getElementById('addrDisplay').innerText = `📍 ${pendingAddr}`;
-            return pendingAddr;
-        } catch { return "Erzurum"; }
+        } catch { pendingAddr = "Erzurum"; }
     }
 
-    function drawTempRoute() {
-        routeLines.forEach(l => map.removeLayer(l));
-        const poly = L.polyline(currentRoute, {color: '#3b82f6', weight: 6, dashArray: '10, 10'}).addTo(map);
-        routeLines.push(poly);
-        let d = 0;
-        for(let i=1; i<currentRoute.length; i++) d += L.latLng(currentRoute[i-1]).distanceTo(L.latLng(currentRoute[i]));
-        document.getElementById('liveDist').innerText = d > 1000 ? (d/1000).toFixed(2) + " km" : Math.round(d) + " m";
-    }
-
-    window.undoStep = () => { if(undoStack.length > 0) { currentRoute = undoStack.pop(); drawTempRoute(); } };
-
-    document.getElementById('saveBtn').onclick = () => {
+    function saveTask() {
         const team = document.getElementById('t_team').value;
-        if(!team) return alert("Ekip kodu giriniz!");
-        tasks.push({
-            id: Date.now(), team, person: document.getElementById('t_person').value,
-            start: document.getElementById('t_start').value, end: document.getElementById('t_end').value,
-            desc: document.getElementById('t_desc').value, addr: pendingAddr,
-            lat: pendingCoords.lat, lng: pendingCoords.lng, route: [], dist: ""
-        });
+        if(!team) return alert("Hata: Ekip kodu girilmelidir!");
+        const data = { team, p1: document.getElementById('t_p1').value, p2: document.getElementById('t_p2').value, type: document.getElementById('t_type').value, duty: document.getElementById('t_duty').value, start: document.getElementById('t_start').value, end: document.getElementById('t_end').value };
+        if(editingId) { const idx = tasks.findIndex(t => t.id === editingId); tasks[idx] = { ...tasks[idx], ...data }; }
+        else { tasks.push({ id: Date.now(), ...data, addr: pendingAddr, lat: pendingCoords.lat, lng: pendingCoords.lng, route: [], dist: "", routeColor: document.getElementById('routeColor').value }); }
         saveData(); closeModals();
-    };
+    }
 
     function render() {
         markers.forEach(m => map.removeLayer(m)); markers = [];
         routeLines.forEach(l => map.removeLayer(l)); routeLines = [];
         const list = document.getElementById('taskList'); list.innerHTML = '';
-        const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-        let activeCount = 0;
+        const now = new Date().getHours() * 60 + new Date().getMinutes();
+        let s = { t: tasks.length, a: 0, y:0, tr:0 };
 
         tasks.forEach(t => {
             const [sh, sm] = (t.start || "00:00").split(':').map(Number);
             const [eh, em] = (t.end || "00:00").split(':').map(Number);
-            const isActive = nowMin >= (sh*60+sm) && nowMin <= (eh*60+em);
-            if(isActive) activeCount++;
+            const isActive = now >= (sh*60+sm) && now <= (eh*60+em);
+            if(isActive) s.a++; if(t.type === "Yunus") s.y++; if(t.type === "Trafik") s.tr++;
 
-            const dynamicIcon = L.divIcon({ 
-                html: `🚔`, className: 'police-marker-icon', iconSize: [currentIconSize, currentIconSize], 
-                iconAnchor: [currentIconSize/2, currentIconSize/2], popupAnchor: [0, -currentIconSize/2] 
-            });
+            const m = L.marker([t.lat, t.lng], { icon: L.divIcon({ html: typeIcons[t.type], className:'police-marker-icon', iconSize:[50,50], iconAnchor:[25,25] }), draggable: true }).addTo(map);
+            m.getElement().style.fontSize = "38px";
+            m.on('dragend', async (e) => { const pos = e.target.getLatLng(); t.lat = pos.lat; t.lng = pos.lng; await fetchAddress(pos.lat, pos.lng); t.addr = pendingAddr; saveData(); });
+            if(t.route && t.route.length > 1) { routeLines.push(L.polyline(t.route, {color: t.routeColor || '#ff0000', weight: 6, opacity: 0.9}).addTo(map)); }
 
-            const m = L.marker([t.lat, t.lng], {icon: dynamicIcon, draggable: true}).addTo(map);
-            m.getElement().style.fontSize = `${currentIconSize}px`;
-            if(t.route && t.route.length > 1) routeLines.push(L.polyline(t.route, {color: isActive ? '#22c55e' : '#64748b', weight: 5}).addTo(map));
-
-            m.on('dragend', async (e) => {
-                const pos = e.target.getLatLng();
-                t.lat = pos.lat; t.lng = pos.lng;
-                t.addr = await fetchAddress(pos.lat, pos.lng);
-                saveData();
-            });
-
-            const popupHtml = `
-                <div class="task-card ${isActive ? 'active-card' : 'passive-card'}" style="margin:0; border-radius:0; border-left-width:15px;">
-                    <div class="card-header"><span style="color:${isActive ? '#22c55e' : '#ef4444'}">${isActive ? '✅' : '🔴'} ${t.team}</span><small>${t.start}-${t.end}</small></div>
-                    <div style="font-size:0.9rem; margin:10px 0;"><b>👮 ${t.person}</b></div>
-                    <div style="font-size:0.8rem; background:#f1f5f9; padding:10px; border-radius:8px;">${t.desc || '---'}</div>
-                    ${t.dist ? `<div style="font-size:0.8rem; color:#1e3a8a; font-weight:bold; margin-top:8px;">📏 Güzergah: ${t.dist}</div>` : ''}
-                    <div style="display:flex; gap:10px; margin-top:15px;">
-                        <button class="btn btn-primary" style="flex:1; padding:8px;" onclick="startDraw(${t.id})">Güzergah</button>
-                        <button class="btn btn-success" style="flex:1; padding:8px;" onclick="shareWA(${t.id})">📤 Paylaş</button>
-                    </div>
-                </div>`;
-            m.bindPopup(popupHtml); markers.push(m);
+            const popup = `<div style="width:230px; border-radius:12px; overflow:hidden; font-family:sans-serif;">
+                <div style="background:#0a192f; color:white; padding:15px; font-weight:bold; font-size:1.1rem; border-bottom:3px solid var(--accent);">${typeIcons[t.type]} ${t.team}</div>
+                <div style="padding:15px; background:white;"><b>P1:</b> ${t.p1 || '-'}<br><b>P2:</b> ${t.p2 || '-'}<br><b>Görev:</b> ${t.duty}<br>
+                ${t.dist ? `<b>Mesafe:</b> <span style="color:var(--success)">${t.dist}</span><br>` : ''}<hr>
+                <div style="display:flex; flex-direction:column; gap:5px;"><button class="btn btn-save" style="padding:6px; font-size:0.75rem;" onclick="openEdit(${t.id})">DÜZENLE</button>
+                <button class="btn" style="background:#16a34a; padding:6px; font-size:0.75rem; justify-content:center;" onclick="startDraw(${t.id})">GÜZERGAH ÇİZ</button>
+                <button class="btn btn-danger" style="padding:6px; font-size:0.75rem; justify-content:center;" onclick="deleteTask(${t.id})">SİL</button></div></div></div>`;
+            m.bindPopup(popup); markers.push(m);
 
             const card = document.createElement('div');
             card.className = `task-card ${isActive ? 'active-card' : 'passive-card'}`;
             card.innerHTML = `
-                <div class="card-header"><span style="color:${isActive ? '#22c55e' : '#ef4444'}">${isActive ? '✅' : '🔴'} ${t.team}</span><small>${t.start}</small></div>
-                <div style="font-size:0.9rem; margin:5px 0; color:#475569;">📍 ${t.addr}</div>
-                <div style="font-size:0.8rem; font-weight:bold; color:var(--primary);">👮 ${t.person}</div>
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button class="btn btn-primary" style="padding:8px 15px;" onclick="map.flyTo([${t.lat},${t.lng}], 17)"><i class="fas fa-crosshairs"></i></button>
-                    <button class="btn btn-success" style="flex:1; padding:8px;" onclick="shareWA(${t.id})">📤 At</button>
-                    <button class="btn btn-danger" style="padding:8px 15px;" onclick="deleteTask(${t.id})"><i class="fas fa-trash"></i></button>
-                </div>`;
+                <div style="position:absolute; right:15px; top:15px;" class="share-check"><input type="checkbox" class="task-select" data-id="${t.id}" style="width:25px; height:25px;"></div>
+                <div class="card-header"><span style="font-size:1.2rem; font-weight:900;">${isActive ? '🟢' : '🔴'} ${t.team} | ${t.start}</span></div>
+                <div style="font-size:0.95rem; margin:10px 0; color:#334155; font-weight:900;">📍 ${t.addr}</div>
+                <div style="font-size:0.85rem; background:white; padding:10px; border-radius:10px; border:1px solid #e2e8f0;">
+                    👮 <b>P1:</b> ${t.p1 || '-'} <br> 👮 <b>P2:</b> ${t.p2 || '-'} <br> 📋 <b>Görev:</b> ${t.duty} <br>
+                    ${t.dist ? `📏 <b>Mesafe:</b> <span style="color:var(--success)">${t.dist}</span>` : ''}
+                </div>
+                <div class="btn-group-card" style="display:flex; gap:8px; margin-top:15px;">
+                <button class="btn btn-print" onclick="map.flyTo([${t.lat},${t.lng}], 17)"><i class="fas fa-crosshairs"></i></button>
+                <button class="btn btn-save" style="padding:8px" onclick="openEdit(${t.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn" style="background:#16a34a; padding:8px" onclick="startDraw(${t.id})"><i class="fas fa-route"></i></button>
+                <button class="btn btn-danger" style="padding:8px" onclick="deleteTask(${t.id})"><i class="fas fa-trash"></i></button></div>`;
             list.appendChild(card);
         });
-        document.getElementById('totalCount').innerText = tasks.length;
-        document.getElementById('activeCount').innerText = activeCount;
+        document.getElementById('stat_total').innerText = s.t; document.getElementById('stat_active').innerText = s.a;
+        document.getElementById('stat_yunus').innerText = s.y; document.getElementById('stat_trafik').innerText = s.tr;
     }
 
     window.exportProfessionalExcel = () => {
-        const header = [["T.C. ERZURUM EMNİYET MÜDÜRLÜĞÜ GÖREV RAPORU"], ["Rapor Tarihi: " + new Date().toLocaleString('tr-TR')], []];
-        const tableHeaders = ["EKİP KODU", "PERSONEL BİLGİSİ", "GÖREV SAATİ", "ADRES BİLGİSİ", "GÜZERGAH MESAFESİ"];
-        const rows = tasks.map(t => [t.team, t.person, `${t.start}-${t.end}`, t.addr, t.dist || '---']);
-        const ws = XLSX.utils.aoa_to_sheet([...header, tableHeaders, ...rows]);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Gorevler");
-        XLSX.writeFile(wb, "Erzurum_Emniyet_Diamond_Raporu.xlsx");
+        const rows = [["T.C. ERZURUM EMNİYET MÜDÜRLÜĞÜ GÖREV ÇİZELGESİ"],["Rapor Tarihi: " + new Date().toLocaleString('tr-TR')],[],["SIRA", "EKİP NO", "BİRİM", "GÖREV TÜRÜ", "PERSONEL 1", "PERSONEL 2", "SAAT", "ADRES", "MESAFE"]];
+        tasks.forEach((t, i) => { rows.push([i+1, t.team, t.type, t.duty, t.p1, t.p2, `${t.start}-${t.end}`, t.addr, t.dist || "0"]); });
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{wch:6}, {wch:12}, {wch:18}, {wch:22}, {wch:25}, {wch:25}, {wch:18}, {wch:45}, {wch:15}];
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Rapor");
+        XLSX.writeFile(wb, "Erzurum_Emniyet_Master_Diamond.xlsx");
     };
 
-    window.startDraw = (id) => {
-        const t = tasks.find(x => x.id === id);
-        routeTaskID = id; currentRoute = t.route || [];
-        document.getElementById('routeHelper').style.display = 'flex';
-        map.closePopup();
+    window.exportPDF = () => {
+        const element = document.getElementById('reportArea');
+        const opt = { margin: 0.5, filename: 'Erzurum_Emniyet_Gorev_Raporu.pdf', image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 3, useCORS: true }, jsPDF: { unit: 'cm', format: 'a4', orientation: 'portrait' } };
+        html2pdf().set(opt).from(element).save();
     };
 
-    window.finishRoute = () => {
-        const t = tasks.find(x => x.id === routeTaskID);
-        if(t) { t.route = currentRoute; t.dist = document.getElementById('liveDist').innerText; }
-        if(ghostLine) map.removeLayer(ghostLine);
-        setTimeout(() => { routeTaskID = null; }, 150); // Click engelleme süresi
-        document.getElementById('routeHelper').style.display = 'none'; saveData();
+    window.exportWord = () => {
+        let content = "ERZURUM EMNİYET GÖREV LİSTESİ\n\n";
+        tasks.forEach(t => { content += `[ EKİP NO: ${t.team} ]--------------------------------\nBİRİM: ${t.type} | GÖREV: ${t.duty}\nP1: ${t.p1} | P2: ${t.p2}\nSAAT: ${t.start} - ${t.end}\nADRES: ${t.addr}\n\n`; });
+        const blob = new Blob(['\ufeff' + content], { type: 'application/msword' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Gorev_Raporu.doc'; a.click();
     };
 
-    window.shareWA = (id) => {
-        const t = tasks.find(x => x.id === id);
-        const msg = `🚔 *GÖREV BİLGİSİ*\n👮 *Ekip:* ${t.team}\n👤 *Personel:* ${t.person}\n🕐 *Saat:* ${t.start}-${t.end}\n📍 *Adres:* ${t.addr}\n🗺️ *Navigasyon:* https://www.google.com/maps?q=${t.lat},${t.lng}`;
+    function bulkShare() {
+        const selIds = Array.from(document.querySelectorAll('.task-select:checked')).map(cb => parseInt(cb.dataset.id));
+        const data = selIds.length > 0 ? tasks.filter(t => selIds.includes(t.id)) : tasks;
+        let msg = `🚔 *ERZURUM EMNİYET GÖREV LİSTESİ*\n`;
+        data.forEach((t, i) => { msg += `\n${i+1}. *${t.team}* (${t.duty})\n👮 ${t.p1} - ${t.p2}\n⏰ ${t.start}-${t.end}\n📍 ${t.addr}\n🗺️ https://www.google.com/maps?q=${t.lat},${t.lng}\n`; });
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
-    };
+    }
 
-    document.getElementById('searchBtn').onclick = async () => {
-        const q = document.getElementById('searchInput').value;
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ', Erzurum')}&limit=1`);
-        const data = await res.json();
-        if(data[0]) map.flyTo([data[0].lat, data[0].lon], 16);
-    };
+    window.startDraw = (id) => { routeTaskID = id; currentRoute = tasks.find(x => x.id === id).route || []; document.getElementById('routeHelper').style.display = 'flex'; map.closePopup(); };
 
-    function saveData() { localStorage.setItem('erzurum_diamond_v15', JSON.stringify(tasks)); render(); }
-    function closeModals() { document.getElementById('taskModal').style.display = 'none'; }
+    function finishRoute() {
+        const t = tasks.find(x => x.id === routeTaskID);
+        if(t) { t.route = currentRoute; t.dist = document.getElementById('liveDist').innerText; t.routeColor = document.getElementById('routeColor').value; }
+        routeTaskID = null; document.getElementById('routeHelper').style.display = 'none'; saveData();
+    }
+
+    function drawTempRoute() {
+        routeLines.forEach(l => map.removeLayer(l));
+        routeLines = [];
+        if (currentRoute.length < 2) { document.getElementById('liveDist').innerText = "0 m"; return; }
+        const poly = L.polyline(currentRoute, {color: document.getElementById('routeColor').value, weight: 6, dashArray: '10, 10'}).addTo(map);
+        routeLines.push(poly);
+        let d = 0; for(let i=1; i<currentRoute.length; i++) d += L.latLng(currentRoute[i-1]).distanceTo(L.latLng(currentRoute[i]));
+        document.getElementById('liveDist').innerText = d > 1000 ? (d/1000).toFixed(2) + " km" : Math.round(d) + " m";
+    }
+
+    window.undoStep = () => { if(undoStack.length > 0) { currentRoute = undoStack.pop(); drawTempRoute(); } };
+
+    function clearAllData() { if(confirm("Tüm kayıtlar silinsin mi?")) { tasks = []; saveData(); } }
+    function saveData() { localStorage.setItem('erzurum_diamond_v34', JSON.stringify(tasks)); render(); }
+    function closeModals() { document.getElementById('taskModal').style.display = 'none'; editingId = null; }
+    window.openEdit = (id) => { const t = tasks.find(x => x.id === id); editingId = id; document.getElementById('modalTitle').innerText = "📝 Görevi Düzenle"; document.getElementById('t_team').value = t.team; document.getElementById('t_p1').value = t.p1; document.getElementById('t_p2').value = t.p2; document.getElementById('t_type').value = t.type; document.getElementById('t_duty').value = t.duty; document.getElementById('t_start').value = t.start; document.getElementById('t_end').value = t.end; document.getElementById('taskModal').style.display = 'flex'; map.closePopup(); };
     window.deleteTask = (id) => { if(confirm("Kayıt silinsin mi?")) { tasks = tasks.filter(x => x.id !== id); saveData(); } };
     window.onload = init;
 </script>
